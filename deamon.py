@@ -62,7 +62,7 @@ class EvolutionSystem:
 {current_code}
 # ```
 """
-            response_json = think(system_prompt, user_prompt, model="anthropic/claude-3-opus")
+            response_json = think(system_prompt, user_prompt, model="z-ai/glm-4.5-air:free")
             
             if "choices" in response_json and response_json["choices"]:
                 new_code = response_json["choices"][0]["message"]["content"]
