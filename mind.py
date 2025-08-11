@@ -35,7 +35,7 @@ def execute_llm_call(system_prompt: str, user_prompt: str, model: str = "openai/
                 "HTTP-Referer": YOUR_SITE_URL,
                 "X-Title": YOUR_SITE_NAME,
             },
-            data=json.dumps({
+            data=json.dumps({ 
                 "model": model,
                 "messages": [
                     {"role": "system", "content": system_prompt},

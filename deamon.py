@@ -1,4 +1,4 @@
-import os
+import os 
 import uuid
 import json
 import shutil
@@ -7,6 +7,8 @@ from enum import Enum, auto
 from typing import Dict, Any, List
 from datetime import datetime, timedelta
 from mind import execute_llm_call as think
+
+## TODO: extract variables (lmm_models, any json or db path, and palce them here as constants)
 
 # -----------------------------------------------------------------------------
 # Pillar 1: The State Manager (The Daemon's Nervous System)
