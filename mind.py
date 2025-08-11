@@ -1,15 +1,15 @@
 import json
 import os
-import threading
-import time
-import uuid
-import shutil
-from datetime import datetime, timedelta
-from enum import Enum, auto
-from typing import Dict, Any, List
+import requests 
 import dotenv 
+from typing import Dict, Any
+from datetime import datetime # Added this import to solve the AttributeError
 
-# load environment variables from .env file
+dotenv.load_dotenv() 
+
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+YOUR_SITE_URL = os.getenv("YOUR_SITE_URL")
+YOUR_SITE_NAME = os.getenv("YOUR_SITE_NAME")
 
 # -----------------------------------------------------------------------------
 # Core API Interaction Function
@@ -35,7 +35,7 @@ def execute_llm_call(system_prompt: str, user_prompt: str, model: str = "openai/
                 "HTTP-Referer": YOUR_SITE_URL,
                 "X-Title": YOUR_SITE_NAME,
             },
-            data=json.dumps({ 
+            data=json.dumps({
                 "model": model,
                 "messages": [
                     {"role": "system", "content": system_prompt},
@@ -43,7 +43,7 @@ def execute_llm_call(system_prompt: str, user_prompt: str, model: str = "openai/
                 ]
             })
         )
-        response.raise_for_status() # Raises an exception for bad status codes
+        response.raise_for_status() 
         return response.json()
 
     except requests.exceptions.RequestException as e:

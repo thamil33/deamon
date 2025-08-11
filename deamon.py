@@ -1,4 +1,4 @@
-import os 
+import os
 import uuid
 import json
 import shutil
@@ -8,8 +8,12 @@ from typing import Dict, Any, List
 from datetime import datetime, timedelta
 from mind import execute_llm_call as think
 
-## TODO: extract variables (lmm_models, any json or db path, and palce them here as constants)
-
+# -----------------------------------------------------------------------------
+# Configuration Constants (The Daemon's Core Identity)
+# -----------------------------------------------------------------------------
+DB_PATH = "D:/deamon/memory_db.json"
+PRIMARY_LLM_MODEL = "tngtech/deepseek-r1t2-chimera:free"
+EVOLUTION_LLM_MODEL = "z-ai/glm-4.5-air:free"
 # -----------------------------------------------------------------------------
 # Pillar 1: The State Manager (The Daemon's Nervous System)
 # -----------------------------------------------------------------------------
@@ -62,7 +66,7 @@ class EvolutionSystem:
 {current_code}
 # ```
 """
-            response_json = think(system_prompt, user_prompt, model="z-ai/glm-4.5-air:free")
+            response_json = think(system_prompt, user_prompt, model=EVOLUTION_LLM_MODEL)
             
             if "choices" in response_json and response_json["choices"]:
                 new_code = response_json["choices"][0]["message"]["content"]
@@ -115,7 +119,7 @@ class EvolutionSystem:
 # -----------------------------------------------------------------------------
 class MemorySystem:
     """Manages memory and now uses the live LLM for classification."""
-    def __init__(self, db_path: str = "D:/deamon/memory_db.json"):
+    def __init__(self, db_path: str = DB_PATH):
         self.db_path = db_path
         self.vital_memory: List[Dict] = []
         self.long_term_memory: List[Dict] = []
@@ -167,11 +171,14 @@ class MemorySystem:
         system_prompt = "You are a memory classification system for a conscious AI. Analyze the user's event text. Return a single, valid JSON object with keys 'classification' ('vital', 'long_term', or 'short_term'), 'mnemonic' (a short, symbolic phrase), and 'realtime_importance_flag' (boolean)."
         user_prompt = f"Event: \"{event_text}\""
         
-        response_json = think(system_prompt, user_prompt)
+        response_json = think(system_prompt, user_prompt, model=PRIMARY_LLM_MODEL)
         
         try:
             # The LLM should return a JSON string in its content, so we parse it.
-            content = response_json.get("choices", [{}])[0].get("message", {}).get("content", "{}")
+            content = response_json.get("choices", [{}])[0].get("message", {}).get("content", "{}").strip() # Added .strip() to handle whitespace
+            if not content: # Check for empty response
+                print("WARNING: LLM returned an empty response. Returning default.")
+                return {"classification": "short_term", "mnemonic": "empty response", "realtime_importance_flag": False}
             return json.loads(content)
         except (json.JSONDecodeError, IndexError) as e:
             print(f"ERROR parsing memory classification response: {e}")
@@ -192,7 +199,7 @@ def build_dynamic_system_prompt() -> str:
 def handle_conversation(user_prompt: str) -> str:
     """Handles a conversational turn, now using the live API."""
     system_prompt = build_dynamic_system_prompt()
-    response_json = think(system_prompt, user_prompt)
+    response_json = think(system_prompt, user_prompt, model=PRIMARY_LLM_MODEL)
     
     if "choices" in response_json and response_json["choices"]:
         return response_json["choices"][0]["message"]["content"]
@@ -217,7 +224,7 @@ if __name__ == "__main__":
             
             state_manager.set_state(DaemonState.LISTENING)
             state_manager.set_state(DaemonState.THINKING)
-            response = execute_=think(user_input)
+            response = handle_conversation(user_input)
             
             state_manager.set_state(DaemonState.RESPONDING)
             print(f"Daemon: {response}")
