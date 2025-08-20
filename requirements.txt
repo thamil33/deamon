@@ -1,0 +1,17 @@
+# Daemon AI Requirements
+
+# Core dependencies
+requests>=2.31.0
+python-dotenv>=1.0.0
+
+# Memory system dependencies
+sentence-transformers>=2.2.2
+faiss-cpu>=1.7.4
+torch>=2.0.0
+numpy>=1.24.0
+
+# Optional GPU acceleration (uncomment if CUDA available)
+# faiss-gpu>=1.7.4
+
+# Development and testing
+pytest>=7.0.0
