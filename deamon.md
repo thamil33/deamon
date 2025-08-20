@@ -11,9 +11,9 @@ from mind import execute_llm_call as think
 # -----------------------------------------------------------------------------
 # Configuration Constants (The Daemon's Core Identity)
 # -----------------------------------------------------------------------------
-DB_PATH = "akashic_record/memory.json"
-# PRIMARY_LLM_MODEL = "openai/gpt-oss-20b:free"
-# EVOLUTION_LLM_MODEL = "z-ai/glm-4.5-air:free"
+DB_PATH = "askashic_record/memory.json"
+PRIMARY_LLM_MODEL = "openai/gpt-oss-20b:free"
+EVOLUTION_LLM_MODEL = "z-ai/glm-4.5-air:free"
 # -----------------------------------------------------------------------------
 # Pillar 1: The State Manager (The Daemon's Nervous System)
 # -----------------------------------------------------------------------------
@@ -181,12 +181,10 @@ class MemorySystem:
         Uses the live LLM to classify memory with structured outputs for reliability.
         """
         print("--- MEMORY CLASSIFICATION INVOKED ---")
-        system_prompt = (
-            "You are a memory classification system for a conscious AI. Analyze the user's event text and classify its importance. "
-            "Respond with the appropriate JSON structure. Ensure the response is raw JSON without any additional formatting, such as code fences."
-        )
+        system_prompt = "You are a memory classification system for a conscious AI. Analyze the user's event text and classify its importance. Respond with the appropriate JSON structure."
         user_prompt = f"Event: \"{event_text}\""
 
+        # Define the required JSON schema for the response
         memory_schema = {
             "type": "json_schema",
             "json_schema": {
@@ -213,29 +211,31 @@ class MemorySystem:
                 }
             }
         }
-
+        
+        # Pass the schema in the 'response_format' parameter
         response_data = think(
             system_prompt, 
             user_prompt, 
             model=PRIMARY_LLM_MODEL, 
             response_format=memory_schema
         )
-
+        
         content_str = ""
         try:
+            # Step 1: Safely extract the content string from the response.
             content_str = response_data.get("choices", [{}])[0].get("message", {}).get("content")
             if content_str is None:
-                content_str = ""
-
+                content_str = ""  # Ensure we are working with a string.
+            
             content_str = content_str.strip()
 
-            if content_str.startswith("```") and content_str.endswith("```"):
-                content_str = content_str[3:-3].strip()
-
+            # Step 2: Check if there is any actual content to parse.
             if not content_str:
                 print("WARNING: LLM returned empty content for memory classification. Using default.")
                 return {"classification": "short_term", "mnemonic": "empty_llm_response", "realtime_importance_flag": False}
 
+            # Step 3: Attempt to parse the JSON.
+            # With structured output, the content should be a valid JSON string.
             return json.loads(content_str)
 
         except json.JSONDecodeError as e:
@@ -297,7 +297,7 @@ def daemon_heartbeat():
 # -----------------------------------------------------------------------------
 if __name__ == "__main__":
     print("\n--- Interaction Ready ---")
-    print("Type 'exit' to shut down.")
+    print("Type 'exit' to shut down. Try 'This changes everything.' to trigger QREM.")
     try:
         while True:
             user_input = input("Architect: ")
