@@ -1,16 +1,23 @@
 import json
 import os
 import dotenv
+import dotenv
 from typing import Dict, Any
 from datetime import datetime
 from llm_factory import get_primary_client, get_reasoning_client, get_memory_client
 import config
+from llm_factory import get_primary_client, get_reasoning_client, get_memory_client
+import config
 
+dotenv.load_dotenv()
 dotenv.load_dotenv()
 
 # -----------------------------------------------------------------------------  
 # Core API Interaction Functions
+# -----------------------------------------------------------------------------  
+# Core API Interaction Functions
 # -----------------------------------------------------------------------------
+def execute_llm_call(system_prompt: str, user_prompt: str, model: str = None, client_type: str = "primary", **kwargs) -> Dict[str, Any]:
 def execute_llm_call(system_prompt: str, user_prompt: str, model: str = None, client_type: str = "primary", **kwargs) -> Dict[str, Any]:
     """
     Executes a call to the configured LLM API using the model client adapter system.
@@ -74,8 +81,35 @@ def execute_llm_call(system_prompt: str, user_prompt: str, model: str = None, cl
 
     except Exception as e:
         print(f"ERROR: LLM call failed: {e}")
+
+        # Return in the format expected by existing daemon code
+        return {
+            "choices": [{
+                "message": {
+                    "content": response_text
+                }
+            }],
+            "usage": usage
+        }
+
+    except Exception as e:
+        print(f"ERROR: LLM call failed: {e}")
         return {"error": str(e)}
 
+# -----------------------------------------------------------------------------  
+# Convenience Functions for Different Client Types
+# -----------------------------------------------------------------------------
+def call_primary_llm(system_prompt: str, user_prompt: str, **kwargs) -> Dict[str, Any]:
+    """Call the primary LLM for general operations."""
+    return execute_llm_call(system_prompt, user_prompt, client_type="primary", **kwargs)
+
+def call_reasoning_llm(system_prompt: str, user_prompt: str, **kwargs) -> Dict[str, Any]:
+    """Call the reasoning LLM for complex operations."""
+    return execute_llm_call(system_prompt, user_prompt, client_type="reasoning", **kwargs)
+
+def call_memory_llm(system_prompt: str, user_prompt: str, **kwargs) -> Dict[str, Any]:
+    """Call the memory LLM for background processing."""
+    return execute_llm_call(system_prompt, user_prompt, client_type="memory", **kwargs)
 # -----------------------------------------------------------------------------  
 # Convenience Functions for Different Client Types
 # -----------------------------------------------------------------------------

@@ -11,9 +11,19 @@ from patterns.thread_manager import ThreadManager
 from awakening import awaken_daemon
 from memory import get_memory_mind
 import config
+from mind import execute_llm_call as think, call_primary_llm, call_reasoning_llm
+from patterns.thread_manager import ThreadManager
+from awakening import awaken_daemon
+from memory import get_memory_mind
+import config
 
 # -----------------------------------------------------------------------------  
+# -----------------------------------------------------------------------------  
 # Configuration Constants (The Daemon's Core Identity)
+# -----------------------------------------------------------------------------  
+DB_PATH = "akashic_record/log.json"
+# All model configuration is now handled by config.py
+# Models are dynamically selected based on LLM_API_PROVIDER setting
 # -----------------------------------------------------------------------------  
 DB_PATH = "akashic_record/log.json"
 # All model configuration is now handled by config.py
@@ -70,6 +80,7 @@ class EvolutionSystem:
 {current_code}
 # ```
 """
+            response_json = call_reasoning_llm(system_prompt, user_prompt)
             response_json = call_reasoning_llm(system_prompt, user_prompt)
             
             if "choices" in response_json and response_json["choices"]:
@@ -221,6 +232,9 @@ class MemorySystem:
         response_data = call_primary_llm(
             system_prompt,
             user_prompt,
+        response_data = call_primary_llm(
+            system_prompt,
+            user_prompt,
             response_format=memory_schema
         )
 
@@ -262,12 +276,37 @@ thread_manager = ThreadManager()
 
 # Initialize semantic memory system (society of mind)
 semantic_memory = get_memory_mind("daemon")
+thread_manager = ThreadManager()
 
+# Initialize semantic memory system (society of mind)
+semantic_memory = get_memory_mind("daemon")
+
+def build_dynamic_system_prompt(active_thread: str = None, user_input: str = "") -> str:
+    """Builds a dynamic system prompt including vital memory mnemonics and thread context."""
 def build_dynamic_system_prompt(active_thread: str = None, user_input: str = "") -> str:
     """Builds a dynamic system prompt including vital memory mnemonics and thread context."""
     vital_mnemonics = memory_system.get_vital_mnemonics()
     mnemonic_str = "\n".join([f"- {m['mnemonic']} (uid: {m['uid']})" for m in vital_mnemonics])
     
+    # Start with thread-specific context if provided (prioritize thread identity)
+    if active_thread:
+        thread_prompt = thread_manager.get_system_prompt(active_thread)
+        if thread_prompt:
+            base_prompt = f"{thread_prompt}\n\n"
+        else:
+            base_prompt = ""
+    else:
+        base_prompt = ""
+    
+    # Add semantic memory context if user input provided
+    semantic_context = ""
+    if user_input:
+        semantic_context = semantic_memory.get_context_for_conversation(user_input)
+        if semantic_context:
+            base_prompt += f"{semantic_context}\n\n"
+    
+    # Add daemon identity and memories
+    daemon_identity = """
     # Start with thread-specific context if provided (prioritize thread identity)
     if active_thread:
         thread_prompt = thread_manager.get_system_prompt(active_thread)
@@ -301,6 +340,10 @@ Let these memories guide your thoughts and responses. They are the anchors of yo
     base_prompt += daemon_identity.format(mnemonics=mnemonic_str if mnemonic_str else "No vital memories yet.")
     
     return base_prompt
+    
+    base_prompt += daemon_identity.format(mnemonics=mnemonic_str if mnemonic_str else "No vital memories yet.")
+    
+    return base_prompt
 
 
 def handle_conversation(user_prompt: str, active_thread: str = None) -> str:
@@ -315,8 +358,31 @@ def handle_conversation(user_prompt: str, active_thread: str = None) -> str:
     print("=" * 30)
     
     response_json = call_primary_llm(system_prompt, user_prompt)
+def handle_conversation(user_prompt: str, active_thread: str = None) -> str:
+    """Handles a conversational turn, now using the live API with optional thread context."""
+    system_prompt = build_dynamic_system_prompt(active_thread, user_prompt)
+    
+    # Debug: Print the system prompt being sent
+    print(f"\n=== SYSTEM PROMPT DEBUG ===")
+    print(f"Active Thread: {active_thread}")
+    print(f"System Prompt Length: {len(system_prompt)} chars")
+    print(f"System Prompt Preview: {system_prompt[:200]}...")
+    print("=" * 30)
+    
+    response_json = call_primary_llm(system_prompt, user_prompt)
     
     if "choices" in response_json and response_json["choices"]:
+        response = response_json["choices"][0]["message"]["content"]
+        
+        # Store conversation in semantic memory
+        conversation_text = f"User: {user_prompt}\nDaemon: {response}"
+        semantic_memory.store_memory(
+            conversation_text, 
+            "contemplations",
+            {"type": "conversation", "thread": active_thread or "none"}
+        )
+        
+        return response
         response = response_json["choices"][0]["message"]["content"]
         
         # Store conversation in semantic memory

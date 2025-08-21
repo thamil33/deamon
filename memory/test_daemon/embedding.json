@@ -1,0 +1,7 @@
+{
+  "model_id": "sentence-transformers/all-MiniLM-L6-v2",
+  "device": "cpu",
+  "dimension": 384,
+  "cache_size": 0,
+  "normalize": true
+}
